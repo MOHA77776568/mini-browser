@@ -170,7 +170,7 @@ function render(nextState) {
   elements.progress.hidden = !tab?.loading;
   elements.status.textContent = tab?.error ? 'تعذّر تحميل الصفحة' : tab?.loading ? 'جارٍ تحميل الصفحة…' : url ? 'اكتمل تحميل الصفحة' : 'جاهز للاكتشاف';
   elements.statusDot.className = `status-dot${tab?.loading ? ' loading' : ''}${tab?.error ? ' error' : ''}`;
-  document.title = `${tab?.title || 'علامة تبويب جديدة'} — مِدار`;
+  document.title = 'مِدار';
   scheduleBounds();
 }
 

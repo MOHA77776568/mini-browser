@@ -450,7 +450,7 @@ function createWindow() {
     height: 900,
     minWidth: 720,
     minHeight: 540,
-    title: 'Mini Browser',
+    title: 'مِدار',
     backgroundColor: '#f8fafc',
     autoHideMenuBar: process.platform !== 'darwin',
     webPreferences: {
@@ -461,6 +461,7 @@ function createWindow() {
       webSecurity: true,
     },
   });
+  mainWindow.on('page-title-updated', (event) => event.preventDefault());
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event, url) => {
     if (url !== chromeUrl) event.preventDefault();

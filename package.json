@@ -1,6 +1,6 @@
 {
   "name": "mini-browser",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "متصفح إنترنت مكتبي بواجهة عربية مبني على Electron",
   "private": true,
   "main": "src/main.js",
