@@ -1,6 +1,6 @@
 {
   "name": "mini-browser",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "متصفح إنترنت مكتبي بواجهة عربية مبني على Electron",
   "private": true,
   "main": "src/main.js",
@@ -13,7 +13,9 @@
     "dist:win": "electron-builder --win portable --x64",
     "dist": "electron-builder"
   },
-  "engines": { "node": ">=22.12.0" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "devDependencies": {
     "electron": "44.9.0",
     "electron-builder": "26.15.3",
@@ -22,10 +24,30 @@
   "build": {
     "appId": "com.minibrowser.desktop",
     "productName": "Mini Browser",
-    "files": ["src/**/*", "package.json"],
-    "directories": { "output": "dist" },
-    "linux": { "target": ["AppImage"], "category": "Network" },
-    "win": { "target": ["portable", "nsis"] },
-    "mac": { "target": ["dmg"], "category": "public.app-category.productivity" }
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Network"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity"
+    }
   }
 }

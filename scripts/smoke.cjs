@@ -5,9 +5,31 @@ const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
 
+async function readDownloadedFile(filePath, expected, timeout = 10000) {
+  const deadline = Date.now() + timeout;
+  let contents;
+  let lastError;
+  while (true) {
+    try {
+      contents = await fs.readFile(filePath, 'utf8');
+      lastError = null;
+      if (contents === expected) return contents;
+    } catch (error) {
+      if (!['ENOENT', 'EBUSY', 'EACCES', 'EPERM'].includes(error.code)) throw error;
+      lastError = error;
+    }
+    if (Date.now() >= deadline) {
+      if (lastError) throw lastError;
+      assert.equal(contents, expected, 'The downloaded file must contain the exact response bytes.');
+    }
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+}
+
 async function main() {
   const root = path.resolve(__dirname, '..');
-  const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'mini-browser-test-'));
+  // Windows runners may expose the temporary directory through an 8.3 alias.
+  const profile = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'mini-browser-test-')));
   const artifacts = path.join(root, 'artifacts');
   await fs.mkdir(artifacts, { recursive: true });
   const server = http.createServer((request, response) => {
@@ -100,10 +122,36 @@ async function main() {
 
     // Stub only the OS picker, so download bytes, completion and filesystem output are real.
     const downloadPath = path.join(profile, 'browser-test.txt');
-    await app.evaluate(({ session }, filePath) => { session.fromPartition('persist:mini-browser').once('will-download', (_event, item) => item.setSavePath(filePath)); }, downloadPath);
-    await inSite('document.querySelector("#download").click()');
-    await page.waitForFunction(async () => (await window.browser.getState()).downloads.some(download => download.state === 'completed'));
-    assert.equal(await fs.readFile(downloadPath, 'utf8'), 'Mini Browser download works.');
+    await app.evaluate(({ session }, filePath) => {
+      globalThis.__miniBrowserSmokeDownload = null;
+      session.fromPartition('persist:mini-browser').once('will-download', (_event, item) => {
+        item.setSavePath(filePath);
+        const result = { requestedPath: filePath, savePath: item.getSavePath(), state: item.getState() };
+        globalThis.__miniBrowserSmokeDownload = result;
+        item.once('done', (_doneEvent, downloadState) => {
+          result.savePath = item.getSavePath();
+          result.state = downloadState;
+          result.receivedBytes = item.getReceivedBytes();
+        });
+      });
+    }, downloadPath);
+    try {
+      await inSite('document.querySelector("#download").click()');
+      await page.waitForFunction(async () => (await window.browser.getState()).downloads.some(download => download.state === 'completed'));
+      const result = await app.evaluate(() => globalThis.__miniBrowserSmokeDownload);
+      assert.equal(result?.state, 'completed', 'The native download must report successful completion.');
+      assert.ok(result.savePath, 'Electron must report the actual download destination.');
+      assert.equal(await readDownloadedFile(result.savePath, 'Mini Browser download works.'), 'Mini Browser download works.');
+      const actualPath = await fs.realpath(result.savePath);
+      const requestedPath = await fs.realpath(downloadPath);
+      assert.equal(process.platform === 'win32' ? actualPath.toLowerCase() : actualPath,
+        process.platform === 'win32' ? requestedPath.toLowerCase() : requestedPath,
+        'The download must be saved at the requested destination.');
+    } catch (error) {
+      const result = await app.evaluate(() => globalThis.__miniBrowserSmokeDownload).catch(() => null);
+      const profileFiles = await fs.readdir(profile).catch(() => []);
+      throw new Error(`Download verification failed. Native download: ${JSON.stringify(result)}; test profile files: ${JSON.stringify(profileFiles)}. ${error.message}`, { cause: error });
+    }
     passed('Download saves the correct bytes and reports completion');
 
     const unsafe = await page.evaluate(async () => { try { const state = await window.browser.navigate('file:///etc/passwd'); return Boolean(state.tabs.find(tab => tab.id === state.activeTabId).error); } catch { return true; } });

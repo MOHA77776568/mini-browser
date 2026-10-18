@@ -10,14 +10,14 @@ on:
       release_tag:
         description: Existing release tag to build and attach Windows downloads to
         required: true
-        default: v1.0.0
+        default: v1.0.1
         type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: windows-release-${{ inputs.release_tag || 'v1.0.0' }}
+  group: windows-release-${{ inputs.release_tag || 'v1.0.1' }}
   cancel-in-progress: false
 
 jobs:
@@ -25,13 +25,13 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     env:
-      RELEASE_TAG: ${{ inputs.release_tag || 'v1.0.0' }}
+      RELEASE_TAG: ${{ inputs.release_tag || 'v1.0.1' }}
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_tag || 'v1.0.0' }}
+          ref: ${{ inputs.release_tag || 'v1.0.1' }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
