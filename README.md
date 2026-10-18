@@ -4,7 +4,7 @@
 
 ## الاستخدام على Windows
 
-على **Windows 10 أو 11 بنظام x64**، نزّل [النسخة المحمولة Mini-Browser-Windows-x64.exe](https://github.com/MOHA77776568/mini-browser/releases/download/v1.0.1/Mini-Browser-Windows-x64.exe) ثم شغّلها بالنقر المزدوج؛ لا تحتاج إلى تثبيت. يتوفر أيضًا [مثبّت Windows](https://github.com/MOHA77776568/mini-browser/releases/download/v1.0.1/Mini-Browser-Setup-Windows-x64.exe). تتوفر بصمات الملفين في [SHA256SUMS.txt](https://github.com/MOHA77776568/mini-browser/releases/download/v1.0.1/SHA256SUMS.txt).
+على **Windows 10 أو 11 بنظام x64**، نزّل [النسخة المحمولة Mini-Browser-Windows-x64.exe](https://github.com/MOHA77776568/mini-browser/releases/download/v1.0.2/Mini-Browser-Windows-x64.exe) ثم شغّلها بالنقر المزدوج؛ لا تحتاج إلى تثبيت. يتوفر أيضًا [مثبّت Windows](https://github.com/MOHA77776568/mini-browser/releases/download/v1.0.2/Mini-Browser-Setup-Windows-x64.exe). تتوفر بصمات الملفين في [SHA256SUMS.txt](https://github.com/MOHA77776568/mini-browser/releases/download/v1.0.2/SHA256SUMS.txt).
 
 اكتب رابطًا أو عبارة بحث في شريط العنوان، أو استخدم مربع البحث في الصفحة الرئيسية. يفتح `Ctrl+T` تبويبًا جديدًا، و`Ctrl+L` شريط العنوان، و`Ctrl+W` يغلق التبويب، و`Ctrl+D` يضيف الصفحة إلى المفضّلة. زر التنزيلات يفتح مجلد التنزيلات.
 
@@ -47,7 +47,7 @@ npm exec -- electron-builder --win portable --x64 -c.win.signAndEditExecutable=f
 npm exec -- electron-builder --win nsis --x64 --publish never
 ```
 
-ينتج المثبّت داخل `dist` باسم `Mini Browser Setup 1.0.1.exe`. يتطلب بناء مثبّت NSIS من Linux وجود Wine، وهو غير متاح في البيئة السحابية الحالية.
+ينتج المثبّت داخل `dist` باسم `Mini Browser Setup 1.0.2.exe`. يتطلب بناء مثبّت NSIS من Linux وجود Wine، وهو غير متاح في البيئة السحابية الحالية.
 
 يمكن أيضًا تشغيل سير العمل `Build Windows installer` يدويًا من تبويب **Actions** في GitHub بعد رفع المشروع إلى المستودع. يبني المثبّت على Windows، ويُرفقه بنتائج التشغيل للتنزيل، دون إنشاء إصدار أو نشره تلقائيًا.
 
