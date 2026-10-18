@@ -1,6 +1,11 @@
 name: Build Windows installer
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/smoke.cjs
+      - .github/workflows/windows.yml
   workflow_dispatch:
 
 permissions:
@@ -29,10 +34,15 @@ jobs:
       - name: Test address handling
         run: npm test
 
+      - name: Test the browser on Windows
+        run: npm run test:e2e
+
       - name: Build NSIS installer
+        if: github.event_name == 'workflow_dispatch'
         run: npm exec -- electron-builder --win nsis --x64 --publish never
 
       - name: Upload installer
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: Mini-Browser-Windows-Setup

@@ -122,24 +122,48 @@ async function main() {
 
     // Stub only the OS picker, so download bytes, completion and filesystem output are real.
     const downloadPath = path.join(profile, 'browser-test.txt');
-    await app.evaluate(({ session }, filePath) => {
-      globalThis.__miniBrowserSmokeDownload = null;
-      session.fromPartition('persist:mini-browser').once('will-download', (_event, item) => {
+    await app.evaluate(({ app, session, webContents }, { filePath, fixtureURL }) => {
+      const fixture = webContents.getAllWebContents().find(contents => contents.getURL() === fixtureURL);
+      if (!fixture) throw new Error(`The download fixture is not loaded: ${fixtureURL}`);
+      const fixtureSession = fixture.session;
+      const configuredSession = session.fromPartition('persist:mini-browser');
+      const result = {
+        requestedPath: filePath,
+        state: 'waiting',
+        observed: false,
+        fixtureWebContentsId: fixture.id,
+        sessionStoragePath: fixtureSession.storagePath,
+        configuredSessionStoragePath: configuredSession.storagePath,
+        sameAsConfiguredSession: fixtureSession === configuredSession,
+      };
+      // Electron's app singleton persists across Playwright evaluation contexts.
+      app.__miniBrowserSmokeDownload = result;
+      fixtureSession.once('will-download', (_event, item, sourceContents) => {
         item.setSavePath(filePath);
-        const result = { requestedPath: filePath, savePath: item.getSavePath(), state: item.getState() };
-        globalThis.__miniBrowserSmokeDownload = result;
+        result.observed = true;
+        result.savePath = item.getSavePath();
+        result.state = item.getState();
+        result.sourceWebContentsId = sourceContents?.id;
+        result.sourceUsesFixtureSession = sourceContents?.session === fixtureSession;
         item.once('done', (_doneEvent, downloadState) => {
           result.savePath = item.getSavePath();
           result.state = downloadState;
           result.receivedBytes = item.getReceivedBytes();
         });
       });
-    }, downloadPath);
+    }, { filePath: downloadPath, fixtureURL: `${origin}/second` });
     try {
       await inSite('document.querySelector("#download").click()');
+      const deadline = Date.now() + 10000;
+      let result;
+      while (true) {
+        result = await app.evaluate(({ app }) => app.__miniBrowserSmokeDownload);
+        if (result && ['completed', 'cancelled', 'interrupted'].includes(result.state)) break;
+        if (Date.now() >= deadline) throw new Error('The native download hook did not observe a terminal state within 10 seconds.');
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      assert.equal(result.state, 'completed', 'The native download must report successful completion.');
       await page.waitForFunction(async () => (await window.browser.getState()).downloads.some(download => download.state === 'completed'));
-      const result = await app.evaluate(() => globalThis.__miniBrowserSmokeDownload);
-      assert.equal(result?.state, 'completed', 'The native download must report successful completion.');
       assert.ok(result.savePath, 'Electron must report the actual download destination.');
       assert.equal(await readDownloadedFile(result.savePath, 'Mini Browser download works.'), 'Mini Browser download works.');
       const actualPath = await fs.realpath(result.savePath);
@@ -148,9 +172,22 @@ async function main() {
         process.platform === 'win32' ? requestedPath.toLowerCase() : requestedPath,
         'The download must be saved at the requested destination.');
     } catch (error) {
-      const result = await app.evaluate(() => globalThis.__miniBrowserSmokeDownload).catch(() => null);
+      const diagnostics = await app.evaluate(({ app, session, webContents }, origin) => {
+        const configuredSession = session.fromPartition('persist:mini-browser');
+        return {
+          nativeDownload: app.__miniBrowserSmokeDownload || null,
+          configuredSessionStoragePath: configuredSession.storagePath,
+          fixtureContents: webContents.getAllWebContents().filter(contents => contents.getURL().startsWith(origin)).map(contents => ({
+            id: contents.id,
+            url: contents.getURL(),
+            sessionStoragePath: contents.session.storagePath,
+            sameAsConfiguredSession: contents.session === configuredSession,
+          })),
+        };
+      }, origin).catch(() => null);
+      const uiDownloads = (await state().catch(() => null))?.downloads;
       const profileFiles = await fs.readdir(profile).catch(() => []);
-      throw new Error(`Download verification failed. Native download: ${JSON.stringify(result)}; test profile files: ${JSON.stringify(profileFiles)}. ${error.message}`, { cause: error });
+      throw new Error(`Download verification failed. Native/session diagnostics: ${JSON.stringify(diagnostics)}; UI downloads: ${JSON.stringify(uiDownloads)}; test profile files: ${JSON.stringify(profileFiles)}. ${error.message}`, { cause: error });
     }
     passed('Download saves the correct bytes and reports completion');
 
