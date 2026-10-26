@@ -37,7 +37,7 @@ try {
   $resultPath = Join-Path $fixture 'result.json'
 
   @'
-param([string]$Installer, [string]$Result, [string]$Version, [string]$ProductName, [string]$AppName, [switch]$ProfileOnly)
+param([string]$Installer, [string]$Result, [string]$Version, [string]$ProductName, [string]$AppName, [switch]$ProfileOnly, [switch]$FreshProfile)
 $ErrorActionPreference = 'Stop'
 $checks = [System.Collections.Generic.List[string]]::new()
 $diagnostics = @{}
@@ -87,8 +87,9 @@ try {
   $diagnostics.sid = $identity.User.Value
   Confirm (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) 'Installer process runs under a genuine non-administrator Windows account'
   # Alternate credentials load the new hive but inherit the runner environment.
-  # Initialize this disposable user's first-logon folders with the documented
-  # Windows known-folder API, rather than accepting a runner directory fallback.
+  # Initialize this disposable user's first-logon shell-folder registry values,
+  # rather than accepting a runner directory fallback. No existing account or
+  # browser settings are changed by this isolated test fixture.
   $profileRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile, [Environment+SpecialFolderOption]::Create)
   $diagnostics.profile = $profileRoot
   if ([string]::IsNullOrWhiteSpace($profileRoot) -or -not (Test-Path ('Registry::HKEY_USERS\' + $identity.User.Value))) {
@@ -103,24 +104,55 @@ try {
   $env:TMP = $env:TEMP
   New-Item -ItemType Directory -Path $env:TEMP -Force | Out-Null
   New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
+  $diagnostics.phase = 'Initialize the disposable user shell-folder registry'
+  $shellFolders = @{
+    'Local AppData' = '%USERPROFILE%\AppData\Local'
+    'AppData' = '%USERPROFILE%\AppData\Roaming'
+    'Desktop' = '%USERPROFILE%\Desktop'
+    'Start Menu' = '%USERPROFILE%\AppData\Roaming\Microsoft\Windows\Start Menu'
+    'Programs' = '%USERPROFILE%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs'
+  }
+  $explorer = 'Software\Microsoft\Windows\CurrentVersion\Explorer\'
+  $expandable = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($explorer + 'User Shell Folders')
+  $expanded = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($explorer + 'Shell Folders')
+  try {
+    foreach ($name in $shellFolders.Keys) {
+      $rawPath = $shellFolders[$name]
+      $actualPath = [Environment]::ExpandEnvironmentVariables($rawPath)
+      New-Item -ItemType Directory -Path $actualPath -Force | Out-Null
+      $expandable.SetValue($name, $rawPath, [Microsoft.Win32.RegistryValueKind]::ExpandString)
+      $expanded.SetValue($name, $actualPath, [Microsoft.Win32.RegistryValueKind]::String)
+    }
+  } finally { $expandable.Dispose(); $expanded.Dispose() }
+  if (-not $FreshProfile) {
+    # Start once more with the corrected standard-account environment. Shell
+    # APIs may have cached inherited runner folders at PowerShell startup.
+    $arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -Installer "{1}" -Result "{2}" -Version "{3}" -ProductName "{4}" -AppName "{5}" -FreshProfile' -f $PSCommandPath, $Installer, $Result, $Version, $ProductName, $AppName
+    if ($ProfileOnly) { $arguments += ' -ProfileOnly' }
+    $fresh = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList $arguments -WorkingDirectory $PSScriptRoot -PassThru
+    if (-not $fresh.WaitForExit(300000)) {
+      & taskkill.exe /PID $fresh.Id /T /F | Out-Null
+      throw 'The fresh standard-account check exceeded its timeout.'
+    }
+    exit $fresh.ExitCode
+  }
   Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 public static class MiniBrowserKnownFolders {
-  [DllImport("shell32.dll", CharSet = CharSet.Unicode)] static extern int SHSetKnownFolderPath(ref Guid folder, uint flags, IntPtr token, string path);
-  [DllImport("shell32.dll")] static extern int SHGetKnownFolderPath(ref Guid folder, uint flags, IntPtr token, out IntPtr path);
-  public static string Initialize(string identifier, string path) {
-    Guid folder = new Guid(identifier);
-    Marshal.ThrowExceptionForHR(SHSetKnownFolderPath(ref folder, 0, IntPtr.Zero, path));
-    IntPtr value;
-    Marshal.ThrowExceptionForHR(SHGetKnownFolderPath(ref folder, 0x8000, IntPtr.Zero, out value));
-    try { return Marshal.PtrToStringUni(value); }
-    finally { Marshal.FreeCoTaskMem(value); }
+  [DllImport("shell32.dll", CharSet = CharSet.Unicode)] static extern int SHGetFolderPath(IntPtr owner, int folder, IntPtr token, uint flags, StringBuilder path);
+  public static string Read(int identifier) {
+    StringBuilder path = new StringBuilder(32768);
+    int status = SHGetFolderPath(IntPtr.Zero, identifier | 0x8000, IntPtr.Zero, 0, path);
+    if (status < 0) throw new InvalidOperationException("SHGetFolderPath CSIDL " + identifier + " failed with HRESULT 0x" + status.ToString("X8"));
+    return path.ToString();
   }
 }
 "@
-  $localData = [MiniBrowserKnownFolders]::Initialize('F1B32785-6FBA-4FCF-9D55-7B8E7F157091', $env:LOCALAPPDATA)
-  $roamingData = [MiniBrowserKnownFolders]::Initialize('3EB685DB-65F9-4CF6-A03A-E3EF65729F3D', $env:APPDATA)
+  $diagnostics.phase = 'Read the actual user native shell folders'
+  $localData = [MiniBrowserKnownFolders]::Read(28)
+  $roamingData = [MiniBrowserKnownFolders]::Read(26)
   $diagnostics.localData = $localData
   $diagnostics.roamingData = $roamingData
   $nativeLocalData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData, [Environment+SpecialFolderOption]::Create)
