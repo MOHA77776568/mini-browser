@@ -46,6 +46,10 @@ jobs:
           $release = @($releases | Where-Object tag_name -eq $env:RELEASE_TAG)
           if ($release.Count -ne 1 -or -not $release[0].draft) { throw 'An unpublished release draft is required; published assets must not be replaced.' }
 
+      - name: Initialize and check the standard-user test environment
+        shell: pwsh
+        run: ./scripts/verify-windows-installer.ps1 -ProfileOnly
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:

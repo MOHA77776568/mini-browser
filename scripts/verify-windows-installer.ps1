@@ -1,13 +1,14 @@
 [CmdletBinding()]
 param(
-  [string]$InstallerPath = 'dist/Mini-Browser-Setup-User-Windows-x64.exe'
+  [string]$InstallerPath = 'dist/Mini-Browser-Setup-User-Windows-x64.exe',
+  [switch]$ProfileOnly
 )
 
 # CI only: provision a temporary standard account on the disposable Windows runner.
 # The installer and uninstaller themselves run with that account's ordinary token.
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'This installer check requires Windows.' }
-$installer = (Resolve-Path -LiteralPath $InstallerPath).Path
+$installer = if ($ProfileOnly) { $null } else { (Resolve-Path -LiteralPath $InstallerPath).Path }
 $package = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../package.json') -Raw | ConvertFrom-Json
 $id = [guid]::NewGuid().ToString('N')
 $accountName = 'mbtest' + $id.Substring(0, 12)
@@ -31,12 +32,12 @@ try {
   $acl.AddAccessRule($rule)
   Set-Acl -LiteralPath $fixture -AclObject $acl
   $stagedInstaller = Join-Path $fixture 'setup.exe'
-  Copy-Item -LiteralPath $installer -Destination $stagedInstaller
+  if (-not $ProfileOnly) { Copy-Item -LiteralPath $installer -Destination $stagedInstaller }
   $childScript = Join-Path $fixture 'check-as-standard-user.ps1'
   $resultPath = Join-Path $fixture 'result.json'
 
   @'
-param([string]$Installer, [string]$Result, [string]$Version, [string]$ProductName, [string]$AppName)
+param([string]$Installer, [string]$Result, [string]$Version, [string]$ProductName, [string]$AppName, [switch]$ProfileOnly)
 $ErrorActionPreference = 'Stop'
 $checks = [System.Collections.Generic.List[string]]::new()
 $diagnostics = @{}
@@ -85,21 +86,49 @@ try {
   $diagnostics.identity = $identity.Name
   $diagnostics.sid = $identity.User.Value
   Confirm (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) 'Installer process runs under a genuine non-administrator Windows account'
-  # First logon loads the user's registry hive but does not necessarily create
-  # AppData yet. The default GetFolderPath overload returns empty for an absent
-  # directory; Create asks Windows to initialize this account's known folders.
+  # Alternate credentials load the new hive but inherit the runner environment.
+  # Initialize this disposable user's first-logon folders with the documented
+  # Windows known-folder API, rather than accepting a runner directory fallback.
   $profileRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile, [Environment+SpecialFolderOption]::Create)
-  $localData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData, [Environment+SpecialFolderOption]::Create)
   $diagnostics.profile = $profileRoot
-  $diagnostics.localData = $localData
-  Confirm (-not [string]::IsNullOrWhiteSpace($profileRoot) -and -not [string]::IsNullOrWhiteSpace($localData) -and $localData.StartsWith(($profileRoot.TrimEnd('\') + '\'), [StringComparison]::OrdinalIgnoreCase) -and (Test-Path ('Registry::HKEY_USERS\' + $identity.User.Value))) 'The standard account has its own loaded user profile'
-  # Alternate-user launches can inherit the runner's environment. Keep native
-  # installer scratch files inside this actual user's writable profile instead.
-  $env:LOCALAPPDATA = $localData
-  $env:APPDATA = [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData, [Environment+SpecialFolderOption]::Create)
-  $env:TEMP = Join-Path $localData 'Temp'
+  if ([string]::IsNullOrWhiteSpace($profileRoot) -or -not (Test-Path ('Registry::HKEY_USERS\' + $identity.User.Value))) {
+    throw 'Windows did not load the actual standard-account profile and registry hive.'
+  }
+  $env:USERPROFILE = $profileRoot
+  $env:HOMEDRIVE = [IO.Path]::GetPathRoot($profileRoot).TrimEnd('\')
+  $env:HOMEPATH = $profileRoot.Substring($env:HOMEDRIVE.Length)
+  $env:LOCALAPPDATA = Join-Path $profileRoot 'AppData\Local'
+  $env:APPDATA = Join-Path $profileRoot 'AppData\Roaming'
+  $env:TEMP = Join-Path $env:LOCALAPPDATA 'Temp'
   $env:TMP = $env:TEMP
   New-Item -ItemType Directory -Path $env:TEMP -Force | Out-Null
+  New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
+  Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class MiniBrowserKnownFolders {
+  [DllImport("shell32.dll", CharSet = CharSet.Unicode)] static extern int SHSetKnownFolderPath(ref Guid folder, uint flags, IntPtr token, string path);
+  [DllImport("shell32.dll")] static extern int SHGetKnownFolderPath(ref Guid folder, uint flags, IntPtr token, out IntPtr path);
+  public static string Initialize(string identifier, string path) {
+    Guid folder = new Guid(identifier);
+    Marshal.ThrowExceptionForHR(SHSetKnownFolderPath(ref folder, 0, IntPtr.Zero, path));
+    IntPtr value;
+    Marshal.ThrowExceptionForHR(SHGetKnownFolderPath(ref folder, 0x8000, IntPtr.Zero, out value));
+    try { return Marshal.PtrToStringUni(value); }
+    finally { Marshal.FreeCoTaskMem(value); }
+  }
+}
+"@
+  $localData = [MiniBrowserKnownFolders]::Initialize('F1B32785-6FBA-4FCF-9D55-7B8E7F157091', $env:LOCALAPPDATA)
+  $roamingData = [MiniBrowserKnownFolders]::Initialize('3EB685DB-65F9-4CF6-A03A-E3EF65729F3D', $env:APPDATA)
+  $diagnostics.localData = $localData
+  $diagnostics.roamingData = $roamingData
+  $nativeLocalData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData, [Environment+SpecialFolderOption]::Create)
+  Confirm (-not [string]::IsNullOrWhiteSpace($localData) -and $localData -eq $nativeLocalData -and $localData.StartsWith(($profileRoot.TrimEnd('\') + '\'), [StringComparison]::OrdinalIgnoreCase) -and $roamingData.StartsWith(($profileRoot.TrimEnd('\') + '\'), [StringComparison]::OrdinalIgnoreCase)) 'The standard account has its own loaded user profile'
+  if ($ProfileOnly) {
+    [pscustomobject]@{ success = $true; checks = @($checks) } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $Result -Encoding UTF8
+    exit 0
+  }
   Confirm (@(Find-Registration ([Microsoft.Win32.RegistryHive]::CurrentUser)).Count -eq 0) 'The test account starts without an existing installation'
   Confirm (@(Find-Registration ([Microsoft.Win32.RegistryHive]::LocalMachine)).Count -eq 0) 'The machine starts without a machine-wide installation'
 
@@ -175,6 +204,7 @@ public static class MiniBrowserManifest {
 
   $windowsPowerShell = Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
   $arguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -Installer "{1}" -Result "{2}" -Version "{3}" -ProductName "{4}" -AppName "{5}"' -f $childScript, $stagedInstaller, $resultPath, $package.version, $package.build.productName, $package.name
+  if ($ProfileOnly) { $arguments += ' -ProfileOnly' }
   $stderr = Join-Path $fixture 'stderr.txt'
   $child = Start-Process -FilePath $windowsPowerShell -ArgumentList $arguments -Credential $credential -LoadUserProfile -WorkingDirectory $fixture -WindowStyle Hidden -RedirectStandardOutput (Join-Path $fixture 'stdout.txt') -RedirectStandardError $stderr -PassThru
   if (-not $child.WaitForExit(330000)) {
@@ -191,7 +221,8 @@ public static class MiniBrowserManifest {
     if ($result.diagnostics) { Write-Host ('Standard-account profile diagnostics: ' + ($result.diagnostics | ConvertTo-Json -Compress)) }
     throw "Standard-user installer check failed: $($result.error)"
   }
-  Write-Host ('Completed {0} installer checks under a non-administrator account.' -f @($result.checks).Count)
+  $checkKind = if ($ProfileOnly) { 'profile' } else { 'installer' }
+  Write-Host ('Completed {0} {1} checks under a non-administrator account.' -f @($result.checks).Count, $checkKind)
 } finally {
   if ($null -ne $user) {
     $sid = $user.SID.Value
