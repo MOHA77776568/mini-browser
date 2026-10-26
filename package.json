@@ -1,6 +1,6 @@
 {
   "name": "mini-browser",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "متصفح إنترنت مكتبي بواجهة عربية مبني على Electron",
   "private": true,
   "main": "src/main.js",
@@ -10,8 +10,10 @@
     "test:e2e": "node scripts/smoke.cjs",
     "test:cloud": "node scripts/cloud-smoke.cjs",
     "pack": "electron-builder --dir",
-    "dist:win": "electron-builder --win portable --x64",
-    "dist": "electron-builder"
+    "dist:win": "electron-builder --win nsis portable --x64",
+    "dist": "electron-builder",
+    "dist:win:portable": "electron-builder --win portable --x64",
+    "dist:win:installer": "electron-builder --win nsis --x64"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -39,14 +41,27 @@
     },
     "win": {
       "target": [
+        "nsis",
         "portable"
-      ]
+      ],
+      "requestedExecutionLevel": "asInvoker"
     },
     "mac": {
       "target": [
         "dmg"
       ],
       "category": "public.app-category.productivity"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "packElevateHelper": false,
+      "runAfterFinish": false,
+      "artifactName": "Mini-Browser-Setup-User-Windows-x64.${ext}"
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
     }
   }
 }

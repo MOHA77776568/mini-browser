@@ -37,14 +37,21 @@ jobs:
       - name: Test the browser on Windows
         run: npm run test:e2e
 
-      - name: Build portable browser
+      - name: Build portable browser and per-user installer
         if: github.event_name == 'workflow_dispatch'
-        run: npm exec -- electron-builder --win portable --x64 --publish never
+        run: npm exec -- electron-builder --win nsis portable --x64 --publish never
 
-      - name: Upload portable browser
+      - name: Verify installation and removal as a standard Windows user
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: ./scripts/verify-windows-installer.ps1 -InstallerPath 'dist/Mini-Browser-Setup-User-Windows-x64.exe'
+
+      - name: Upload Windows downloads
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Mini-Browser-Windows-Portable
-          path: dist/Mini Browser *.exe
+          name: Mini-Browser-Windows
+          path: |
+            dist/Mini Browser *.exe
+            dist/Mini-Browser-Setup-User-Windows-x64.exe
           if-no-files-found: error
