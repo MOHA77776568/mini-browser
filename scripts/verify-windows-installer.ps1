@@ -39,6 +39,7 @@ try {
 param([string]$Installer, [string]$Result, [string]$Version, [string]$ProductName, [string]$AppName)
 $ErrorActionPreference = 'Stop'
 $checks = [System.Collections.Generic.List[string]]::new()
+$diagnostics = @{}
 function Confirm([bool]$Condition, [string]$Message) {
   if (-not $Condition) { throw $Message }
   $checks.Add($Message)
@@ -81,13 +82,21 @@ function Find-Registration([Microsoft.Win32.RegistryHive]$Hive) {
 try {
   $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
   $principal = [System.Security.Principal.WindowsPrincipal]::new($identity)
+  $diagnostics.identity = $identity.Name
+  $diagnostics.sid = $identity.User.Value
   Confirm (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) 'Installer process runs under a genuine non-administrator Windows account'
-  $localData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
-  Confirm (-not [string]::IsNullOrWhiteSpace($localData)) 'The standard account has its own loaded user profile'
+  # First logon loads the user's registry hive but does not necessarily create
+  # AppData yet. The default GetFolderPath overload returns empty for an absent
+  # directory; Create asks Windows to initialize this account's known folders.
+  $profileRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile, [Environment+SpecialFolderOption]::Create)
+  $localData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData, [Environment+SpecialFolderOption]::Create)
+  $diagnostics.profile = $profileRoot
+  $diagnostics.localData = $localData
+  Confirm (-not [string]::IsNullOrWhiteSpace($profileRoot) -and -not [string]::IsNullOrWhiteSpace($localData) -and $localData.StartsWith(($profileRoot.TrimEnd('\') + '\'), [StringComparison]::OrdinalIgnoreCase) -and (Test-Path ('Registry::HKEY_USERS\' + $identity.User.Value))) 'The standard account has its own loaded user profile'
   # Alternate-user launches can inherit the runner's environment. Keep native
   # installer scratch files inside this actual user's writable profile instead.
   $env:LOCALAPPDATA = $localData
-  $env:APPDATA = [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)
+  $env:APPDATA = [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData, [Environment+SpecialFolderOption]::Create)
   $env:TEMP = Join-Path $localData 'Temp'
   $env:TMP = $env:TEMP
   New-Item -ItemType Directory -Path $env:TEMP -Force | Out-Null
@@ -159,7 +168,7 @@ public static class MiniBrowserManifest {
   Confirm ((Test-Path -LiteralPath $sentinel) -and (Get-Content -LiteralPath $sentinel -Raw).Trim() -eq 'Existing browser data must survive uninstall.') 'Uninstallation preserves the existing browser profile'
   [pscustomobject]@{ success = $true; checks = @($checks); installDirectory = $installDirectory } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $Result -Encoding UTF8
 } catch {
-  [pscustomobject]@{ success = $false; checks = @($checks); error = $_.Exception.Message } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $Result -Encoding UTF8
+  [pscustomobject]@{ success = $false; checks = @($checks); error = $_.Exception.Message; diagnostics = $diagnostics } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $Result -Encoding UTF8
   exit 1
 }
 '@ | Set-Content -LiteralPath $childScript -Encoding UTF8
@@ -178,7 +187,10 @@ public static class MiniBrowserManifest {
   }
   $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
   foreach ($check in $result.checks) { Write-Host "PASS $check" }
-  if (-not $result.success -or $child.ExitCode -ne 0) { throw "Standard-user installer check failed: $($result.error)" }
+  if (-not $result.success -or $child.ExitCode -ne 0) {
+    if ($result.diagnostics) { Write-Host ('Standard-account profile diagnostics: ' + ($result.diagnostics | ConvertTo-Json -Compress)) }
+    throw "Standard-user installer check failed: $($result.error)"
+  }
   Write-Host ('Completed {0} installer checks under a non-administrator account.' -f @($result.checks).Count)
 } finally {
   if ($null -ne $user) {

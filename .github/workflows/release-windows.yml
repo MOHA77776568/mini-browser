@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/release-windows.yml
+      - scripts/verify-windows-installer.ps1
   workflow_dispatch:
     inputs:
       release_tag:
@@ -32,6 +33,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'push' && github.sha || inputs.release_tag || 'v1.1.1' }}
+
+      - name: Require an unpublished release matching the source version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json).version
+          if ($env:RELEASE_TAG -ne "v$version") { throw 'Release tag does not match the source version.' }
+          $releases = & gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to read release state.' }
+          $release = @($releases | Where-Object tag_name -eq $env:RELEASE_TAG)
+          if ($release.Count -ne 1 -or -not $release[0].draft) { throw 'An unpublished release draft is required; published assets must not be replaced.' }
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
