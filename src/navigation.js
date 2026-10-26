@@ -1,6 +1,11 @@
 'use strict';
 
 const MAX_INPUT_LENGTH = 8192;
+const SEARCH_ENGINES = Object.freeze({
+  google: 'https://www.google.com/search?q=',
+  duckduckgo: 'https://duckduckgo.com/?q=',
+  bing: 'https://www.bing.com/search?q=',
+});
 
 function isAllowedUrl(value) {
   if (typeof value !== 'string' || value.length > MAX_INPUT_LENGTH) return false;
@@ -12,7 +17,7 @@ function isAllowedUrl(value) {
   }
 }
 
-function normalizeInput(value) {
+function normalizeInput(value, searchEngine = 'google') {
   if (typeof value !== 'string') throw new Error('Please enter a website address or search.');
   const input = value.trim();
   if (input.length > MAX_INPUT_LENGTH) throw new Error('This address is too long.');
@@ -45,7 +50,8 @@ function normalizeInput(value) {
     }
   }
 
-  return `https://www.google.com/search?q=${encodeURIComponent(input)}`;
+  if (!Object.hasOwn(SEARCH_ENGINES, searchEngine)) throw new Error('Unsupported search engine.');
+  return `${SEARCH_ENGINES[searchEngine]}${encodeURIComponent(input)}`;
 }
 
 module.exports = { normalizeInput, isAllowedUrl };

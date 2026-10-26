@@ -21,6 +21,14 @@ test('treats natural language, including Arabic, as an encoded search', () => {
   assert.equal(normalizeInput('hello world'), 'https://www.google.com/search?q=hello%20world');
 });
 
+test('search provider selection keeps the query encoded and website addresses unchanged', () => {
+  const query = 'اختبار & privacy';
+  assert.equal(normalizeInput(query, 'duckduckgo'), `https://duckduckgo.com/?q=${encodeURIComponent(query)}`);
+  assert.equal(normalizeInput(query, 'bing'), `https://www.bing.com/search?q=${encodeURIComponent(query)}`);
+  assert.equal(normalizeInput('https://example.com/path', 'bing'), 'https://example.com/path');
+  assert.throws(() => normalizeInput(query, 'https://attacker.example/'));
+});
+
 test('blocks privileged protocols, embedded credentials and invalid input', () => {
   for (const input of ['file:///etc/passwd', 'javascript:alert(1)', 'data:text/html,hi', 'about:blank', 'ftp://example.com', 'https://user:password@example.com', 'https://']) {
     assert.throws(() => normalizeInput(input));

@@ -30,6 +30,20 @@
         <symbol id="i-orbit" viewBox="0 0 32 32"><circle cx="16" cy="16" r="7" /><ellipse cx="16" cy="16" rx="15" ry="6" transform="rotate(-40 16 16)" /><circle cx="25.5" cy="7.8" r="2.2" /></symbol>
         <symbol id="i-youtube" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="4" fill="currentColor" stroke="none" /><path d="m10 9 6 3-6 3V9Z" fill="white" stroke="none" /></symbol>
         <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.91c-2.78.62-3.37-1.21-3.37-1.21-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.64-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.74-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.31 9.31 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.71 1.03 1.62 1.03 2.74 0 3.94-2.34 4.8-4.58 5.05.36.32.68.94.68 1.9v2.83c0 .27.18.59.69.49A10.26 10.26 0 0 0 22 12.25C22 6.59 17.52 2 12 2Z" /></symbol>
+        <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></symbol>
+        <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7M12 7v5l3 2" /></symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24"><path d="m10 3-1 3-3 1-3-1-1 3 2 3-1 3 2 3 3-1 3 2 3-1 3 1 2-3-1-3 2-3-1-3-3 1-3-1-1-3h-3Z" /><circle cx="12" cy="12" r="3" /></symbol>
+        <symbol id="i-private" viewBox="0 0 24 24"><path d="M3 10h18l-2-6H5l-2 6ZM2 14h20M4 14a4 4 0 1 0 8 0m0 0a4 4 0 1 0 8 0" /></symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24"><path d="m8 3 8 0-1 6 4 4v2H5v-2l4-4-1-6ZM12 15v7" /></symbol>
+        <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9ZM17 8a6 6 0 0 1 0 8M20 5a10 10 0 0 1 0 14" /></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></symbol>
+        <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 8V3h12v5M6 17H3V9h18v8h-3M6 14h12v7H6v-7ZM17 11h1" /></symbol>
+        <symbol id="i-save" viewBox="0 0 24 24"><path d="M4 3h13l4 4v14H3V3h1ZM7 3v6h10V3M7 21v-8h10v8" /></symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2" /><path d="M16 8V3H3v13h5" /></symbol>
+        <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" /></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="m7 4 13 8-13 8V4Z" /></symbol>
+        <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3 10 14M10 3H3v18h18v-7" /></symbol>
+        <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
       </defs>
     </svg>
 
@@ -39,6 +53,8 @@
           <div class="brand" aria-label="متصفح مِدار"><svg class="brand-icon"><use href="#i-orbit" /></svg><span>مِدار<span class="brand-dot">.</span></span></div>
           <div class="tabs" id="tabs" role="tablist" aria-label="علامات التبويب"></div>
           <button class="icon-button new-tab" id="new-tab" data-testid="new-tab" title="علامة تبويب جديدة (Ctrl+T)" aria-label="علامة تبويب جديدة"><svg><use href="#i-plus" /></svg></button>
+          <button class="icon-button new-tab private-button" id="private-tab" data-testid="private-tab" title="تبويب خاص جديد (Ctrl+Shift+N)" aria-label="تبويب خاص جديد"><svg><use href="#i-private" /></svg></button>
+          <span class="private-indicator" id="private-indicator" data-testid="private-indicator" hidden><svg><use href="#i-private" /></svg>تصفّح خاص</span>
           <span class="tab-strip-caption">مساحة للاكتشاف</span>
         </div>
 
@@ -56,17 +72,25 @@
             <button class="icon-button bookmark-button" id="bookmark" data-testid="bookmark" type="button" title="إضافة إلى المفضّلة" aria-label="إضافة إلى المفضّلة" aria-pressed="false" disabled><svg><use href="#i-star" /></svg></button>
           </form>
           <div class="toolbar-end">
-            <button class="icon-button downloads-button" id="downloads" title="فتح مجلد التنزيلات" aria-label="فتح مجلد التنزيلات"><svg><use href="#i-download" /></svg><span class="download-count" id="download-count" hidden></span></button>
+            <button class="icon-button downloads-button" id="downloads" data-testid="downloads-button" title="التنزيلات (Ctrl+J)" aria-label="التنزيلات"><svg><use href="#i-download" /></svg><span class="download-count" id="download-count" hidden></span></button>
             <span class="toolbar-divider"></span>
-            <span class="profile-badge" title="متصفحك الشخصي" aria-label="متصفحك الشخصي">م</span>
+            <button class="icon-button" id="menu-button" data-testid="menu-button" title="قائمة مِدار" aria-label="قائمة مِدار" aria-haspopup="menu" aria-expanded="false"><svg><use href="#i-menu" /></svg></button>
           </div>
         </div>
 
         <div class="bookmarks-bar">
-          <span class="bookmarks-label"><svg><use href="#i-folder" /></svg>المفضّلة</span>
+          <button class="bookmarks-label bookmarks-manager" id="bookmarks-manager" title="إدارة المفضّلة"><svg><use href="#i-folder" /></svg>المفضّلة</button>
           <span class="bookmark-divider"></span>
           <div class="bookmarks-list" id="bookmarks-list"></div>
           <span class="bookmarks-hint" id="bookmarks-hint">مواقعك المفضّلة، أقرب إليك</span>
+        </div>
+        <div class="find-bar" id="find-bar" hidden>
+          <label for="find-input"><svg><use href="#i-search" /></svg><span>بحث في الصفحة</span></label>
+          <input id="find-input" data-testid="find-input" autocomplete="off" maxlength="500" aria-label="بحث في الصفحة" placeholder="اكتب ما تبحث عنه…" />
+          <span id="find-count" role="status" aria-live="polite">0 من 0</span>
+          <button class="icon-button" id="find-prev" data-testid="find-prev" title="النتيجة السابقة" aria-label="النتيجة السابقة"><svg class="rotate-up"><use href="#i-chevron" /></svg></button>
+          <button class="icon-button" id="find-next" data-testid="find-next" title="النتيجة التالية" aria-label="النتيجة التالية"><svg class="rotate-down"><use href="#i-chevron" /></svg></button>
+          <button class="icon-button" id="find-close" data-testid="find-close" title="إغلاق البحث" aria-label="إغلاق البحث"><svg><use href="#i-close" /></svg></button>
         </div>
         <progress class="page-progress" id="page-progress" aria-label="جارٍ تحميل الصفحة" hidden></progress>
       </header>
@@ -78,6 +102,7 @@
             <div class="home-date"><span id="home-date"></span><span class="date-divider"></span><time id="home-clock" dir="ltr"></time></div>
           </div>
 
+          <div class="private-notice" id="private-notice" hidden><svg><use href="#i-private" /></svg><div><strong>هذه مساحة تصفّح خاصة</strong><span>لا تُحفظ زيارات هذا التبويب أو جلسته بعد إغلاق كل التبويبات الخاصة. تبقى الملفات التي تنزّلها والمفضّلة التي تضيفها محفوظة. المواقع ومزوّد الإنترنت قد يتعرّفون على زيارتك.</span></div></div>
           <div class="home-content">
             <div class="hero-mark" aria-hidden="true"><svg><use href="#i-orbit" /></svg></div>
             <div class="hero-eyebrow">أهلاً بك في مِدار</div>
@@ -88,7 +113,7 @@
               <input id="home-search-input" data-testid="home-search-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="ابحث في الإنترنت أو اكتب رابطًا" placeholder="ابحث في الإنترنت أو اكتب رابطًا..." />
               <button type="submit" title="ابحث" aria-label="ابحث"><svg><use href="#i-arrow" /></svg></button>
             </form>
-            <div class="search-note"><span>مساحة أوسع لكل ما تحب</span><span class="note-dot">·</span><span>بحث Google</span></div>
+            <div class="search-note"><span>مساحة أوسع لكل ما تحب</span><span class="note-dot">·</span><span id="search-engine-label">بحث Google</span></div>
 
             <div class="quick-links-section">
               <div class="section-topline"><h2>ابدأ من هنا</h2><span>وجهات تستحق الزيارة</span></div>
@@ -113,9 +138,71 @@
           <p class="error-detail" id="error-detail" dir="ltr"></p>
           <button class="primary-button" id="retry"><svg><use href="#i-reload" /></svg>إعادة المحاولة</button>
         </section>
+        <section class="library-panel" id="library-panel" hidden aria-label="أدوات المتصفح">
+          <div class="library-heading"><div><span class="hero-eyebrow">أدوات مِدار</span><h1 id="panel-title">السجل</h1><p id="panel-description"></p></div><button class="icon-button panel-close" id="panel-close" data-testid="panel-close" title="العودة إلى التصفح" aria-label="العودة إلى التصفح"><svg><use href="#i-close" /></svg></button></div>
+          <nav class="library-nav" aria-label="أقسام أدوات المتصفح">
+            <button data-panel="history"><svg><use href="#i-history" /></svg>السجل</button>
+            <button data-panel="bookmarks"><svg><use href="#i-star" /></svg>المفضّلة</button>
+            <button data-panel="downloads"><svg><use href="#i-download" /></svg>التنزيلات</button>
+            <button data-panel="settings"><svg><use href="#i-settings" /></svg>الإعدادات</button>
+          </nav>
+          <div class="library-content">
+            <section id="panel-history" data-testid="panel-history" hidden>
+              <div class="panel-tools"><label class="library-search"><svg><use href="#i-search" /></svg><input id="history-search" data-testid="history-search" placeholder="ابحث في السجل…" aria-label="ابحث في السجل" autocomplete="off" /></label><button class="text-button danger" id="history-clear">مسح السجل</button></div>
+              <div class="library-list" id="history-list"></div>
+            </section>
+            <section id="panel-bookmarks" data-testid="panel-bookmarks" hidden>
+              <div class="panel-tools"><label class="library-search"><svg><use href="#i-search" /></svg><input id="bookmark-search" placeholder="ابحث في المفضّلة…" aria-label="ابحث في المفضّلة" autocomplete="off" /></label><span class="subtle">أضف الصفحة باستخدام Ctrl+D</span></div>
+              <div class="library-list" id="bookmark-list"></div>
+            </section>
+            <section id="panel-downloads" data-testid="panel-downloads" hidden>
+              <div class="panel-tools"><span class="subtle">ملفاتك وتقدّم تنزيلها</span><button class="text-button" id="open-downloads-folder"><svg><use href="#i-folder" /></svg>مجلد التنزيلات</button></div>
+              <div class="library-list" id="download-list"></div>
+            </section>
+            <section id="panel-settings" data-testid="panel-settings" hidden>
+              <div class="settings-card"><h2>على راحتك</h2>
+                <label class="setting-row"><span><strong>محرك البحث</strong><small>للبحث من شريط العنوان والصفحة الرئيسية</small></span><select id="setting-search-engine" data-testid="setting-search-engine"><option value="google">Google</option><option value="duckduckgo">DuckDuckGo</option><option value="bing">Bing</option></select></label>
+                <label class="setting-row"><span><strong>المظهر</strong><small>اختر ألوان واجهة المتصفح</small></span><select id="setting-theme" data-testid="setting-theme"><option value="system">حسب النظام</option><option value="light">فاتح</option><option value="dark">داكن</option></select></label>
+                <label class="setting-row"><span><strong>استعادة التبويبات عند التشغيل</strong><small>يشمل التبويبات العادية فقط</small></span><input type="checkbox" id="setting-restore-session" data-testid="setting-restore-session" /></label>
+                <label class="setting-row home-setting"><span><strong>الصفحة الرئيسية</strong><small>اتركه فارغًا لصفحة مِدار</small></span><input id="setting-home-url" data-testid="setting-home-url" type="url" dir="ltr" placeholder="https://example.com" maxlength="8192" /></label>
+                <div class="settings-actions"><button class="text-button" id="home-use-current">استخدام الصفحة الحالية</button><button class="text-button" id="home-use-default">استخدام صفحة مِدار</button></div>
+              </div>
+              <div class="settings-card"><h2>بيانات التصفح والخصوصية</h2><p class="subtle">حذف ملفات الارتباط يسجّل خروجك من المواقع. المفضّلة لا تُحذف.</p>
+                <div class="clear-options"><label><input type="checkbox" id="clear-history" checked />سجل التصفح</label><label><input type="checkbox" id="clear-cache" checked />الملفات المؤقتة</label><label><input type="checkbox" id="clear-cookies" />ملفات الارتباط وبيانات المواقع</label><label><input type="checkbox" id="clear-permissions" />أذونات المواقع</label></div>
+                <button class="text-button danger" id="clear-browsing-data" data-testid="clear-browsing-data">مسح البيانات المحددة</button><p class="subtle" id="privacy-result" role="status"></p>
+              </div>
+              <div class="settings-card"><h2>أذونات المواقع</h2><p class="subtle">يمكنك إعادة ضبط قرار سابق ليطلب الموقع الإذن مرة أخرى.</p><div id="permissions-list" class="permissions-list"></div></div>
+              <div class="settings-card profile-details"><h2>بياناتك على جهازك</h2><p class="subtle">التطبيق يعمل دون تثبيت، وتبقى بيانات التصفح محفوظة لحسابك على الجهاز.</p><code id="profile-path" dir="ltr"></code></div>
+            </section>
+          </div>
+        </section>
       </main>
 
       <footer class="status-bar"><span class="status-text"><span class="status-dot" id="status-dot"></span><span id="status-text" role="status" aria-live="polite">جاهز للاكتشاف</span></span><span class="download-status" id="download-status" hidden><svg><use href="#i-download" /></svg><span id="download-status-text"></span><progress id="download-progress" max="100" aria-label="تقدّم التنزيل"></progress></span><span class="status-brand">مِدار <span>•</span> مساحة لفضولك</span></footer>
+    </div>
+    <div class="browser-menu" id="browser-menu" role="menu" aria-label="قائمة مِدار" hidden>
+      <button role="menuitem" data-command="newTab"><svg><use href="#i-plus" /></svg>تبويب جديد<kbd>Ctrl T</kbd></button>
+      <button role="menuitem" data-command="newPrivateTab"><svg><use href="#i-private" /></svg>تبويب خاص<kbd>Ctrl Shift N</kbd></button>
+      <button role="menuitem" data-command="reopenClosedTab" id="menu-reopen"><svg><use href="#i-history" /></svg>استعادة تبويب مغلق<kbd>Ctrl Shift T</kbd></button>
+      <div class="menu-divider"></div>
+      <button role="menuitem" data-panel="history" data-testid="menu-history"><svg><use href="#i-history" /></svg>السجل<kbd>Ctrl H</kbd></button>
+      <button role="menuitem" data-panel="bookmarks" data-testid="menu-bookmarks"><svg><use href="#i-star" /></svg>المفضّلة<kbd>Ctrl Shift O</kbd></button>
+      <button role="menuitem" data-panel="downloads" data-testid="menu-downloads"><svg><use href="#i-download" /></svg>التنزيلات<kbd>Ctrl J</kbd></button>
+      <button role="menuitem" data-command="find" data-testid="menu-find"><svg><use href="#i-search" /></svg>البحث في الصفحة<kbd>Ctrl F</kbd></button>
+      <div class="menu-divider"></div>
+      <div class="menu-zoom"><span>تكبير الصفحة</span><div><button class="icon-button" id="zoom-out" title="تصغير" aria-label="تصغير"><svg><use href="#i-minus" /></svg></button><button class="zoom-reset" id="zoom-reset" title="إعادة التكبير إلى 100%">100%</button><button class="icon-button" id="zoom-in" title="تكبير" aria-label="تكبير"><svg><use href="#i-plus" /></svg></button></div></div>
+      <button role="menuitem" data-command="printPage"><svg><use href="#i-print" /></svg>طباعة<kbd>Ctrl P</kbd></button>
+      <button role="menuitem" data-command="savePDF"><svg><use href="#i-save" /></svg>حفظ بصيغة PDF</button>
+      <button role="menuitem" data-command="savePage"><svg><use href="#i-save" /></svg>حفظ الصفحة<kbd>Ctrl S</kbd></button>
+      <div class="menu-divider"></div>
+      <button role="menuitem" data-panel="settings" data-testid="menu-settings"><svg><use href="#i-settings" /></svg>الإعدادات والخصوصية</button>
+    </div>
+    <div class="tab-menu" id="tab-menu" role="menu" aria-label="خيارات التبويب" hidden>
+      <button role="menuitem" data-tab-command="duplicateTab"><svg><use href="#i-copy" /></svg>تكرار التبويب</button>
+      <button role="menuitem" data-tab-command="pinTab" id="tab-pin"><svg><use href="#i-pin" /></svg><span>تثبيت التبويب</span></button>
+      <button role="menuitem" data-tab-command="muteTab" id="tab-mute"><svg><use href="#i-volume" /></svg><span>كتم صوت التبويب</span></button>
+      <div class="menu-divider"></div>
+      <button role="menuitem" data-tab-command="closeTab"><svg><use href="#i-close" /></svg>إغلاق التبويب</button>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   </body>

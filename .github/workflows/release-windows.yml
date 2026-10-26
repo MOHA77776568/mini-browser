@@ -1,4 +1,4 @@
-name: Build Windows release assets
+name: Build Windows portable release
 
 on:
   push:
@@ -10,14 +10,14 @@ on:
       release_tag:
         description: Existing release tag to build and attach Windows downloads to
         required: true
-        default: v1.0.3
+        default: v1.1.0
         type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: windows-release-${{ inputs.release_tag || 'v1.0.3' }}
+  group: windows-release-${{ inputs.release_tag || 'v1.1.0' }}
   cancel-in-progress: false
 
 jobs:
@@ -25,13 +25,13 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     env:
-      RELEASE_TAG: ${{ inputs.release_tag || 'v1.0.3' }}
+      RELEASE_TAG: ${{ inputs.release_tag || 'v1.1.0' }}
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_tag || 'v1.0.3' }}
+          ref: ${{ inputs.release_tag || 'v1.1.0' }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -51,16 +51,15 @@ jobs:
       - name: Test the browser on Windows
         run: npm run test:e2e
 
-      - name: Build portable app and installer
-        run: npm exec -- electron-builder --win portable nsis --x64 --publish never
+      - name: Build portable browser
+        run: npm exec -- electron-builder --win portable --x64 --publish never
 
       - name: Prepare release downloads and checksums
         shell: pwsh
         run: |
           $version = (Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json).version
           Copy-Item -LiteralPath "dist/Mini Browser $version.exe" -Destination 'dist/Mini-Browser-Windows-x64.exe'
-          Copy-Item -LiteralPath "dist/Mini Browser Setup $version.exe" -Destination 'dist/Mini-Browser-Setup-Windows-x64.exe'
-          $assets = @('Mini-Browser-Windows-x64.exe', 'Mini-Browser-Setup-Windows-x64.exe')
+          $assets = @('Mini-Browser-Windows-x64.exe')
           $checksums = foreach ($asset in $assets) {
             $hash = (Get-FileHash -LiteralPath (Join-Path 'dist' $asset) -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $asset"
@@ -72,7 +71,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $assets = @('dist/Mini-Browser-Windows-x64.exe', 'dist/Mini-Browser-Setup-Windows-x64.exe', 'dist/SHA256SUMS.txt')
+          $assets = @('dist/Mini-Browser-Windows-x64.exe', 'dist/SHA256SUMS.txt')
           & gh release upload $env:RELEASE_TAG @assets --clobber --repo $env:GITHUB_REPOSITORY
           if ($LASTEXITCODE -ne 0) { throw "GitHub release upload failed with exit code $LASTEXITCODE" }
 
@@ -83,7 +82,6 @@ jobs:
           name: Mini-Browser-Windows-${{ github.run_id }}
           path: |
             dist/Mini-Browser-Windows-x64.exe
-            dist/Mini-Browser-Setup-Windows-x64.exe
             dist/SHA256SUMS.txt
           if-no-files-found: ignore
 

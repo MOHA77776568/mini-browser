@@ -1,4 +1,4 @@
-name: Build Windows installer
+name: Check Windows browser
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  windows-installer:
+  windows-browser:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -37,14 +37,14 @@ jobs:
       - name: Test the browser on Windows
         run: npm run test:e2e
 
-      - name: Build NSIS installer
+      - name: Build portable browser
         if: github.event_name == 'workflow_dispatch'
-        run: npm exec -- electron-builder --win nsis --x64 --publish never
+        run: npm exec -- electron-builder --win portable --x64 --publish never
 
-      - name: Upload installer
+      - name: Upload portable browser
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Mini-Browser-Windows-Setup
-          path: dist/*Setup*.exe
+          name: Mini-Browser-Windows-Portable
+          path: dist/Mini Browser *.exe
           if-no-files-found: error
